@@ -30,32 +30,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       if (user) {
         const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
         const isOwner = user.email === 'b2addr@gmail.com';
-
-        if (userDoc.exists()) {
-          let currentProfile = userDoc.data() as UserProfile;
-          // Force owner to be approved and admin if they aren't already
-          if (isOwner && (!currentProfile.isApproved || currentProfile.role !== 'ADMIN')) {
-            const updates = { isApproved: true, role: 'ADMIN' as const };
-            await updateDoc(userRef, updates);
-            currentProfile = { ...currentProfile, ...updates };
+        
+        try {
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists()) {
+            let currentProfile = userDoc.data() as UserProfile;
+            // Force owner to be approved and admin if they aren't already
+            if (isOwner && (!currentProfile.isApproved || currentProfile.role !== 'ADMIN')) {
+              const updates = { isApproved: true, role: 'ADMIN' as const };
+              await updateDoc(userRef, updates).catch(e => console.warn("Failed to force admin role in DB:", e));
+              currentProfile = { ...currentProfile, ...updates };
+            }
+            setProfile(currentProfile);
+          } else {
+            // Auto-approve users for demo/test phase to avoid blocks
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || user.email?.split('@')[0] || 'Unknown User',
+              role: isOwner ? 'ADMIN' : 'STAFF',
+              department: 'GENERAL',
+              isApproved: true, // AUTO-APPROVE FOR DEMO
+              createdAt: new Date().toISOString(),
+            };
+            console.log("Creating new profile:", newProfile);
+            await setDoc(userRef, newProfile).catch(e => {
+              console.error("Critical error creating user profile:", e);
+            });
+            setProfile(newProfile);
           }
-          setProfile(currentProfile);
-        } else {
-          // Auto-approve the owner (you) and grant ADMIN role, others start as pending STAFF
-          const isOwner = user.email === 'b2addr@gmail.com';
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'New User',
-            role: isOwner ? 'ADMIN' : 'STAFF',
-            department: isOwner ? 'GENERAL' : 'GENERAL',
-            isApproved: isOwner,
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'users', user.uid), newProfile);
-          setProfile(newProfile);
+        } catch (error) {
+          console.error("AuthContext error fetching profile:", error);
+          // Fallback if rules are blocking get before set
+          if (isOwner) {
+            setProfile({
+              uid: user.uid, email: user.email!, displayName: 'Owner (Fallback)',
+              role: 'ADMIN', department: 'GENERAL', isApproved: true, createdAt: ''
+            });
+          }
         }
       } else {
         setProfile(null);

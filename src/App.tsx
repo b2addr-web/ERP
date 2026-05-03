@@ -260,13 +260,19 @@ const Login = () => {
           <span>الدخول بواسطة Google</span>
         </button>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-[11px] font-bold text-indigo-600 hover:underline"
+            className="text-[11px] font-bold text-indigo-600 hover:underline block w-full"
           >
             {isSignUp ? 'لديك حساب بالفعل؟ سجل الدخول الآن' : 'ليس لديك حساب؟ أنشئ حساباً جديداً'}
           </button>
+          
+          <p className="text-[10px] text-slate-400 bg-slate-50 p-2 rounded border border-slate-100">
+            ملاحظة: إذا واجهت مشكلة في تسجيل الدخول، يرجى فتح التطبيق في 
+            <a href={window.location.href} target="_blank" rel="noreferrer" className="text-indigo-600 font-bold mx-1 underline">نافذة جديدة</a>
+             لتفادي حظر النوافذ المنبثقة.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 justify-center text-[10px] uppercase font-bold text-slate-300 mt-6 tracking-widest leading-none">

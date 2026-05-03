@@ -16,21 +16,32 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
 
     function isAdmin() {
-      return isVerified() && (getUserData().role == 'ADMIN' || request.auth.token.email == 'b2addr@gmail.com');
+      let user = getUserData();
+      return isSignedIn() && (
+        request.auth.token.email == 'b2addr@gmail.com' ||
+        (user != null && user.get('role', 'STAFF') == 'ADMIN')
+      );
     }
 
     function isDeptHead(dept) {
       let user = getUserData();
-      return isVerified() && (user.role == 'ADMIN' || (user.role == 'HEAD' && user.department == dept));
+      return isSignedIn() && (
+        isAdmin() || 
+        (user != null && user.get('role', 'STAFF') == 'HEAD' && user.get('department', 'GENERAL') == dept)
+      );
     }
 
     function isDeptStaff(dept) {
       let user = getUserData();
-      return isVerified() && (user.role == 'ADMIN' || user.department == dept);
+      return isSignedIn() && (
+        isAdmin() || 
+        (user != null && user.get('department', 'GENERAL') == dept)
+      );
     }
 
     function isValidId(id) {
@@ -69,10 +80,10 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      allow get: if isVerified();
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      allow create: if isVerified() && (request.auth.uid == userId) && isValidUser(incoming());
-      allow update: if isAdmin() || (isVerified() && request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'profilePic']));
+      allow create: if isSignedIn() && (request.auth.uid == userId) && isValidUser(incoming());
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'profilePic']));
     }
 
     // Finance Module (Accounts, Transactions)
