@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
-import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile, signInAsGuest } from './lib/firebase';
+import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile, signInAsGuest, translateFirebaseError } from './lib/firebase';
 import { Package, Lock, ShieldCheck, Mail, Key, UserPlus, LogIn, Users, BrainCircuit, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -179,7 +179,7 @@ const Login = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'حدث خطأ ما، يرجى المحاولة مرة أخرى');
+      setError(translateFirebaseError(err.code) || err.message || 'حدث خطأ ما.');
     } finally {
       setIsLoading(false);
     }

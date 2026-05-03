@@ -1,18 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // --- Helpers ---
+    // ── Helpers ───────────────────────────────────────────────────────────────
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+    function isOwner() {
+      return isSignedIn() && request.auth.token.email == 'b2addr@gmail.com';
+    }
+
+    function isAnon() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
 
     function getUserData() {
@@ -21,103 +21,78 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      let user = getUserData();
+      let u = getUserData();
       return isSignedIn() && (
-        request.auth.token.email == 'b2addr@gmail.com' ||
-        (user != null && user.get('role', 'STAFF') == 'ADMIN') ||
-        request.auth.token.firebase.sign_in_provider == 'anonymous'
+        isOwner() ||
+        isAnon() ||
+        (u != null && u.get('role', 'STAFF') == 'ADMIN' && u.get('isApproved', false) == true)
       );
     }
 
-    function isDeptHead(dept) {
-      let user = getUserData();
+    function isApprovedUser() {
+      let u = getUserData();
       return isSignedIn() && (
-        isAdmin() || 
-        (user != null && user.get('role', 'STAFF') == 'HEAD' && user.get('department', 'GENERAL') == dept)
+        isAdmin() ||
+        (u != null && u.get('isApproved', false) == true)
       );
     }
 
-    function isDeptStaff(dept) {
-      let user = getUserData();
-      return isSignedIn() && (
-        isAdmin() || 
-        (user != null && user.get('department', 'GENERAL') == dept)
-      );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    // --- Validations ---
-
-    function isValidUser(data) {
-      return data.email is string &&
-             data.role in ['ADMIN', 'HEAD', 'STAFF'] &&
-             data.isApproved is bool;
-    }
-
-    function isValidAccount(data) {
-      return data.code is string && data.code.size() <= 20 &&
-             data.name is string && data.name.size() <= 100 &&
-             data.type in ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
-    }
-
-    function isValidInvoice(data) {
-      return data.invoiceNumber is string &&
-             data.totalAmount is number &&
-             data.status in ['DRAFT', 'SENT', 'PAID', 'OVERDUE'];
-    }
-
-    // --- Rules ---
-
-    // Users Collection
+    // ── /users ────────────────────────────────────────────────────────────────
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
-      allow create: if isSignedIn() && (request.auth.uid == userId) && isValidUser(incoming());
-      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'profilePic']));
+      // ✅ FIX: المستخدم يقدر يقرأ/يكتب بياناته الخاصة دائماً
+      allow read:   if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // ✅ FIX: السماح بإنشاء الـ profile عند أول تسجيل دخول
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // تحديث: المستخدم يعدل بياناته أو الأدمن يعدل أي بيانات
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    // Finance Module (Accounts, Transactions)
-    match /accounts/{accountId} {
-      allow read: if isDeptStaff('FINANCE');
-      allow write: if isDeptHead('FINANCE') && isValidAccount(incoming());
+    // ── /finance ──────────────────────────────────────────────────────────────
+    match /finance/{docId} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
+    }
+    match /finance/{docId}/{sub=**} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
     }
 
-    match /transactions/{txId} {
-      allow read: if isDeptStaff('FINANCE');
-      allow write: if isDeptHead('FINANCE');
+    // ── /procurement ──────────────────────────────────────────────────────────
+    match /procurement/{docId} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
+    }
+    match /procurement/{docId}/{sub=**} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
     }
 
-    // Procurement Module (Suppliers, POs)
-    match /suppliers/{supplierId} {
-      allow read: if isDeptStaff('PROCUREMENT') || isDeptStaff('FINANCE');
-      allow write: if isDeptHead('PROCUREMENT');
+    // ── /sales ────────────────────────────────────────────────────────────────
+    match /sales/{docId} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
+    }
+    match /sales/{docId}/{sub=**} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
     }
 
-    match /purchaseOrders/{poId} {
-      allow read: if isDeptStaff('PROCUREMENT') || isDeptStaff('FINANCE');
-      allow write: if isDeptHead('PROCUREMENT') || isDeptHead('FINANCE'); // Finance can approve
+    // ── /settings ─────────────────────────────────────────────────────────────
+    match /settings/{docId} {
+      allow read:   if isApprovedUser();
+      allow write:  if isAdmin();
     }
 
-    // Sales Module (Customers, Invoices)
-    match /invoices/{invoiceId} {
-      allow read: if isDeptStaff('SALES') || isDeptStaff('FINANCE');
-      allow write: if isDeptHead('SALES') && isValidInvoice(incoming());
+    // ── test connection ───────────────────────────────────────────────────────
+    match /test/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if false;
     }
 
-    match /customers/{customerId} {
-      allow read: if isDeptStaff('SALES');
-      allow write: if isDeptHead('SALES');
+    // ── Default: deny all ─────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
