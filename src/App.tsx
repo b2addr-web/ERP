@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
-import { signInWithGoogle } from './lib/firebase';
-import { Package, Lock, ShieldCheck } from 'lucide-react';
+import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile } from './lib/firebase';
+import { Package, Lock, ShieldCheck, Mail, Key, UserPlus, LogIn, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { FinanceDashboard } from './components/Finance/FinanceDashboard';
@@ -119,33 +119,159 @@ const Dashboard = () => {
 };
 
 const Login = () => {
+  const [isSignUp, setIsSignUp] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [displayName, setDisplayName] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        const userCredential = await signUpWithEmail(email, password);
+        if (displayName) {
+          await updateProfile(userCredential.user, { displayName });
+        }
+      } else {
+        await loginWithEmail(email, password);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'حدث خطأ ما، يرجى المحاولة مرة أخرى');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md"
         dir="rtl"
       >
-        <div className="mb-8">
-          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
-            <Package className="w-10 h-10 text-white" />
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
+            <Package className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">نظام ERP الموحد</h1>
-          <p className="text-slate-500 mt-2">تسجيل الدخول للوصول إلى لوحة التحكم</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {isSignUp ? 'إنشاء حساب جديد للوصول للنظام' : 'تسجيل الدخول للوصول إلى لوحة التحكم'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-3 bg-rose-50 border border-rose-100 text-rose-600 text-xs rounded-lg font-bold flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isSignUp && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">الاسم الكامل</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="أدخل اسمك"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 pr-10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                />
+                <Users className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">البريد الإلكتروني</label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 pr-10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono"
+              />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">كلمة المرور</label>
+            <div className="relative">
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 py-2.5 px-4 pr-10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono"
+              />
+              <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : isSignUp ? (
+              <>
+                <UserPlus className="w-4 h-4" />
+                <span>إنشاء حساب</span>
+              </>
+            ) : (
+              <>
+                <LogIn className="w-4 h-4" />
+                <span>تسجيل الدخول</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-100"></div>
+          </div>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold">
+            <span className="bg-white px-4 text-slate-400 tracking-widest">أو عبر</span>
+          </div>
         </div>
 
         <button
           onClick={signInWithGoogle}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 py-3 px-4 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-all hover:shadow-md mb-4"
+          type="button"
+          className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 py-2.5 px-4 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-50 transition-all hover:shadow-sm mb-4 uppercase tracking-tighter"
         >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
           <span>الدخول بواسطة Google</span>
         </button>
 
-        <div className="flex items-center gap-2 justify-center text-xs text-slate-400 mt-6">
-          <Lock className="w-3 h-3" />
-          <span>بياناتك محمية ومشفرة</span>
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-[11px] font-bold text-indigo-600 hover:underline"
+          >
+            {isSignUp ? 'لديك حساب بالفعل؟ سجل الدخول الآن' : 'ليس لديك حساب؟ أنشئ حساباً جديداً'}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 justify-center text-[10px] uppercase font-bold text-slate-300 mt-6 tracking-widest leading-none">
+          <Lock className="w-2.5 h-2.5" />
+          <span>تشفير عالي الأمان بنظام AES-256</span>
         </div>
       </motion.div>
     </div>
