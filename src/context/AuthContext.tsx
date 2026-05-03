@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         const isOwner = user.email === 'b2addr@gmail.com';
-        const isDemo = user.email === 'demo@erp.com';
+        const isDemo = user.email === 'demo@erp.com' || user.isAnonymous;
         
         try {
           const userDoc = await getDoc(userRef);
@@ -48,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Auto-approve users for demo/test phase to avoid blocks
             const newProfile: UserProfile = {
               uid: user.uid,
-              email: user.email || '',
-              displayName: isDemo ? 'المستخدم التجريبي' : (user.displayName || user.email?.split('@')[0] || 'Unknown User'),
+              email: user.email || 'guest@demo.com',
+              displayName: isDemo ? 'المستخدم التجريبي (ضيف)' : (user.displayName || user.email?.split('@')[0] || 'Unknown User'),
               role: (isOwner || isDemo) ? 'ADMIN' : 'STAFF',
               department: 'GENERAL',
               isApproved: true, // AUTO-APPROVE FOR DEMO
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fallback if rules are blocking get before set
           if (isOwner || isDemo) {
             setProfile({
-              uid: user.uid, email: user.email!, displayName: isDemo ? 'Demo Admin' : 'Owner (Fallback)',
+              uid: user.uid, email: user.email || 'guest@demo.com', displayName: isDemo ? 'Demo Guest Admin' : 'Owner (Fallback)',
               role: 'ADMIN', department: 'GENERAL', isApproved: true, createdAt: ''
             });
           }

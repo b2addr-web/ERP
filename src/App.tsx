@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
-import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile } from './lib/firebase';
+import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile, signInAsGuest } from './lib/firebase';
 import { Package, Lock, ShieldCheck, Mail, Key, UserPlus, LogIn, Users, BrainCircuit, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -187,15 +187,12 @@ const Login = () => {
 
   const handleDemoAccess = async () => {
     setIsLoading(true);
+    setError('');
     try {
-      // Use a predefined demo account or just sign in anonymously if possible, 
-      // but for "skipping", we'll simulate a fast login experience.
-      await loginWithEmail('demo@erp.com', 'demo1234').catch(async () => {
-        // If demo account doesn't exist, try to sign up it once (for first time)
-        await signUpWithEmail('demo@erp.com', 'demo1234');
-      });
+      await signInAsGuest();
     } catch (err: any) {
-      setError('عذراً، فشل الدخول التجريبي. يرجى استخدام حسابك الشخصي.');
+      console.error("Guest access error:", err);
+      setError('عذراً، فشل الدخول التجريبي. يرجى التأكد من اتصالك بالإنترنت.');
     } finally {
       setIsLoading(false);
     }

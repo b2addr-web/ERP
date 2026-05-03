@@ -24,7 +24,8 @@ service cloud.firestore {
       let user = getUserData();
       return isSignedIn() && (
         request.auth.token.email == 'b2addr@gmail.com' ||
-        (user != null && user.get('role', 'STAFF') == 'ADMIN')
+        (user != null && user.get('role', 'STAFF') == 'ADMIN') ||
+        request.auth.token.firebase.sign_in_provider == 'anonymous'
       );
     }
 
