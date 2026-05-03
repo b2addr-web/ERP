@@ -1,32 +1,34 @@
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile,
-  signInAnonymously
-} from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// src/lib/firebase.ts
+
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
+/**
+ * Firebase configuration
+ * IMPORTANT:
+ * All values must exist in Vercel Environment Variables
+ * and start with NEXT_PUBLIC_
+ */
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY as string,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN as string,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID as string,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET as string,
+  messagingSenderId:
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID as string,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID as string,
+};
+
+// ✅ Prevent re-initializing Firebase (VERY IMPORTANT)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// ✅ Auth instance bound to the initialized app
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
-export const signUpWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
-export const signInAsGuest = () => signInAnonymously(auth);
-export const logout = () => signOut(auth);
-export { updateProfile, signInAnonymously };
+// ✅ Default export (optional but useful)
+export default app;
 
-// Validate Connection to Firestore
-async function testConnection() {
-  try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
