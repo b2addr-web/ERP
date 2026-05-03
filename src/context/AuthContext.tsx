@@ -31,13 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         const isOwner = user.email === 'b2addr@gmail.com';
+        const isDemo = user.email === 'demo@erp.com';
         
         try {
           const userDoc = await getDoc(userRef);
           if (userDoc.exists()) {
             let currentProfile = userDoc.data() as UserProfile;
-            // Force owner to be approved and admin if they aren't already
-            if (isOwner && (!currentProfile.isApproved || currentProfile.role !== 'ADMIN')) {
+            // Force owner or demo user to be approved and admin
+            if ((isOwner || isDemo) && (!currentProfile.isApproved || currentProfile.role !== 'ADMIN')) {
               const updates = { isApproved: true, role: 'ADMIN' as const };
               await updateDoc(userRef, updates).catch(e => console.warn("Failed to force admin role in DB:", e));
               currentProfile = { ...currentProfile, ...updates };
@@ -48,8 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || '',
-              displayName: user.displayName || user.email?.split('@')[0] || 'Unknown User',
-              role: isOwner ? 'ADMIN' : 'STAFF',
+              displayName: isDemo ? 'المستخدم التجريبي' : (user.displayName || user.email?.split('@')[0] || 'Unknown User'),
+              role: (isOwner || isDemo) ? 'ADMIN' : 'STAFF',
               department: 'GENERAL',
               isApproved: true, // AUTO-APPROVE FOR DEMO
               createdAt: new Date().toISOString(),
@@ -63,9 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error("AuthContext error fetching profile:", error);
           // Fallback if rules are blocking get before set
-          if (isOwner) {
+          if (isOwner || isDemo) {
             setProfile({
-              uid: user.uid, email: user.email!, displayName: 'Owner (Fallback)',
+              uid: user.uid, email: user.email!, displayName: isDemo ? 'Demo Admin' : 'Owner (Fallback)',
               role: 'ADMIN', department: 'GENERAL', isApproved: true, createdAt: ''
             });
           }

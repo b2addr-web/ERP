@@ -185,6 +185,22 @@ const Login = () => {
     }
   };
 
+  const handleDemoAccess = async () => {
+    setIsLoading(true);
+    try {
+      // Use a predefined demo account or just sign in anonymously if possible, 
+      // but for "skipping", we'll simulate a fast login experience.
+      await loginWithEmail('demo@erp.com', 'demo1234').catch(async () => {
+        // If demo account doesn't exist, try to sign up it once (for first time)
+        await signUpWithEmail('demo@erp.com', 'demo1234');
+      });
+    } catch (err: any) {
+      setError('عذراً، فشل الدخول التجريبي. يرجى استخدام حسابك الشخصي.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <motion.div 
@@ -278,6 +294,17 @@ const Login = () => {
             )}
           </button>
         </form>
+
+        <div className="mt-4">
+          <button
+            onClick={handleDemoAccess}
+            disabled={isLoading}
+            className="w-full bg-emerald-600/10 text-emerald-600 py-3 rounded-xl font-bold text-xs border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>الدخول السريع (تجربة النظام)</span>
+          </button>
+        </div>
 
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
