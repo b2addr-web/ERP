@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
+import { AIAnalyst } from '../AI/AIAnalyst';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -23,6 +24,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             {children}
           </div>
         </div>
+        <AIAnalyst />
       </main>
     </div>
   );

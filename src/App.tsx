@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
 import { signInWithGoogle, loginWithEmail, signUpWithEmail, updateProfile } from './lib/firebase';
-import { Package, Lock, ShieldCheck, Mail, Key, UserPlus, LogIn, Users } from 'lucide-react';
+import { Package, Lock, ShieldCheck, Mail, Key, UserPlus, LogIn, Users, BrainCircuit, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { FinanceDashboard } from './components/Finance/FinanceDashboard';
@@ -113,6 +113,43 @@ const Dashboard = () => {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group border-r-4 border-r-indigo-500">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <BrainCircuit className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">توقعات الذكاء الاصطناعي</h3>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed mb-4">
+              بناءً على اتجاهات المبيعات الحالية، يُتوقع نمو بنسبة <span className="text-emerald-600 font-bold">12%</span> في الربع القادم مع استقرار التدفق النقدي.
+            </p>
+            <button 
+              onClick={() => document.getElementById('ai-analyst-trigger')?.click()}
+              className="text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded font-bold hover:bg-indigo-100 transition-colors"
+            >
+              فتح المحلل الشامل
+            </button>
+          </div>
+          <Sparkles className="absolute -left-4 -bottom-4 w-24 h-24 text-indigo-500/5 group-hover:scale-110 transition-transform" />
+        </div>
+
+        <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group border-r-4 border-r-rose-500">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">تنبيهات المخاطر الذكية</h3>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed mb-4">
+              تم اكتشاف تأخر في تحصيل <span className="text-rose-600 font-bold">3 فواتير</span> كبرى من المنطقة الغربية. يُنصح بجدولة متابعة فورية.
+            </p>
+            <div className="flex gap-2">
+              <span className="text-[9px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold">مخاطر متوسطة</span>
+              <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">تحليل مؤتمت</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
