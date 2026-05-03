@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isVerified() && (getUserData().role == 'ADMIN' || request.auth.token.email == 'b2addr@gmail.com');
+    }
+
+    function isDeptHead(dept) {
+      let user = getUserData();
+      return isVerified() && (user.role == 'ADMIN' || (user.role == 'HEAD' && user.department == dept));
+    }
+
+    function isDeptStaff(dept) {
+      let user = getUserData();
+      return isVerified() && (user.role == 'ADMIN' || user.department == dept);
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validations ---
+
+    function isValidUser(data) {
+      return data.email is string &&
+             data.role in ['ADMIN', 'HEAD', 'STAFF'] &&
+             data.isApproved is bool;
+    }
+
+    function isValidAccount(data) {
+      return data.code is string && data.code.size() <= 20 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.type in ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
+    }
+
+    function isValidInvoice(data) {
+      return data.invoiceNumber is string &&
+             data.totalAmount is number &&
+             data.status in ['DRAFT', 'SENT', 'PAID', 'OVERDUE'];
+    }
+
+    // --- Rules ---
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isVerified();
+      allow list: if isAdmin();
+      allow create: if isVerified() && (request.auth.uid == userId) && isValidUser(incoming());
+      allow update: if isAdmin() || (isVerified() && request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'profilePic']));
+    }
+
+    // Finance Module (Accounts, Transactions)
+    match /accounts/{accountId} {
+      allow read: if isDeptStaff('FINANCE');
+      allow write: if isDeptHead('FINANCE') && isValidAccount(incoming());
+    }
+
+    match /transactions/{txId} {
+      allow read: if isDeptStaff('FINANCE');
+      allow write: if isDeptHead('FINANCE');
+    }
+
+    // Procurement Module (Suppliers, POs)
+    match /suppliers/{supplierId} {
+      allow read: if isDeptStaff('PROCUREMENT') || isDeptStaff('FINANCE');
+      allow write: if isDeptHead('PROCUREMENT');
+    }
+
+    match /purchaseOrders/{poId} {
+      allow read: if isDeptStaff('PROCUREMENT') || isDeptStaff('FINANCE');
+      allow write: if isDeptHead('PROCUREMENT') || isDeptHead('FINANCE'); // Finance can approve
+    }
+
+    // Sales Module (Customers, Invoices)
+    match /invoices/{invoiceId} {
+      allow read: if isDeptStaff('SALES') || isDeptStaff('FINANCE');
+      allow write: if isDeptHead('SALES') && isValidInvoice(incoming());
+    }
+
+    match /customers/{customerId} {
+      allow read: if isDeptStaff('SALES');
+      allow write: if isDeptHead('SALES');
+    }
+  }
+}

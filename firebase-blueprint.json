@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "FINANCE_MANAGER", "PROCUREMENT_MANAGER", "SALES_MANAGER", "EMPLOYEE"] },
+        "department": { "type": "string", "enum": ["FINANCE", "PROCUREMENT", "SALES", "GENERAL"] },
+        "region": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "isApproved"]
+    },
+    "Account": {
+      "title": "Chart of Accounts",
+      "description": "Individual account in the COA",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"] },
+        "parentCode": { "type": "string" },
+        "balance": { "type": "number" }
+      },
+      "required": ["code", "name", "type"]
+    },
+    "Transaction": {
+      "title": "Journal Entry",
+      "description": "Financial transaction",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "ref": { "type": "string" },
+        "debitAccount": { "type": "string" },
+        "creditAccount": { "type": "string" },
+        "amount": { "type": "number" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["date", "amount", "debitAccount", "creditAccount"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Vendor information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "contactName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "rating": { "type": "number" },
+        "address": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "PurchaseOrder": {
+      "title": "Purchase Order",
+      "description": "Formal order to a supplier",
+      "type": "object",
+      "properties": {
+        "supplierId": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "RECEIVED", "CANCELLED"] },
+        "totalAmount": { "type": "number" },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["supplierId", "status", "totalAmount"]
+    },
+    "Invoice": {
+      "title": "Sales Invoice",
+      "description": "Invoice issued to a customer",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["DRAFT", "SENT", "PAID", "OVERDUE"] },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "vatAmount": { "type": "number" },
+        "region": { "type": "string" }
+      },
+      "required": ["customerId", "invoiceNumber", "status", "totalAmount"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and RBAC"
+    },
+    "/accounts/{accountId}": {
+      "schema": "Account",
+      "description": "Chart of accounts"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "General journal entries"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Vendors list"
+    },
+    "/purchaseOrders/{poId}": {
+      "schema": "PurchaseOrder",
+      "description": "Procurement orders"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Sales invoices"
+    }
+  }
+}
